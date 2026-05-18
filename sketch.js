@@ -140,6 +140,7 @@ function handleGameLogic(hand) {
     if (countdown <= 0) {
       gameState = "PLAYER_DECIDING";
       rpsProgress = 0; // 重置出拳進度
+      playerChoice = ""; // 確保偵測開始時是乾淨的
     }
   }
 
@@ -149,8 +150,12 @@ function handleGameLogic(hand) {
     let currentGesture = hand ? getRPSGesture(hand) : "未知";
     
     if (currentGesture !== "未知") {
+      // 如果偵測到的手勢與目前正在累積的手勢不同，則重新偵測（進度歸零）
+      if (playerChoice !== "" && currentGesture !== playerChoice) {
+        rpsProgress = 0;
+      }
       rpsProgress += deltaTime;
-      playerChoice = currentGesture; // 暫存目前偵測到的手勢
+      playerChoice = currentGesture; // 更新或紀錄目前偵測到的手勢
     } else {
       rpsProgress -= deltaTime;
     }
