@@ -2,6 +2,14 @@ let handPose;
 let video;
 let hands = [];
 
+// 遊戲狀態與變數
+let gameState = "WAITING"; // WAITING, COUNTING, RESULT
+let countdown = 3;
+let timerStart = 0;
+let playerChoice = "";
+let computerChoice = "";
+let resultMessage = "";
+
 function preload() {
   // 載入 ml5.js 的 handPose 模型
   handPose = ml5.handPose();
@@ -31,15 +39,16 @@ function draw() {
   let offsetX = (width - video.width) / 2;
   let offsetY = (height - video.height) / 2;
 
-  // 左右顛倒顯示影像 (鏡像效果)
+  // --- 繪製影像 (左右顛倒鏡像效果) ---
   push();
-  // 移動到影像右側邊界再翻轉刻度
   translate(offsetX + video.width, offsetY);
   scale(-1, 1);
   image(video, 0, 0);
   pop();
 
-  // 繪製偵測到的手部關鍵點連線
+  let currentHand = null;
+
+  // --- 繪製手部連線 ---
   for (let i = 0; i < hands.length; i++) {
     let hand = hands[i];
     
@@ -66,7 +75,101 @@ function draw() {
       }
       endShape();
     }
+    
+    // 取得第一隻偵測到的手進行邏輯判斷
+    if (i === 0) currentHand = hand;
   }
+
+  // --- 遊戲邏輯處理 ---
+  displayUI(offsetX, offsetY);
+  handleGameLogic(currentHand);
+}
+
+function handleGameLogic(hand) {
+  if (!hand) return;
+
+  if (gameState === "WAITING") {
+    if (isThumbsUp(hand)) {
+      gameState = "COUNTING";
+      timerStart = millis();
+      countdown = 3;
+    }
+  } else if (gameState === "COUNTING") {
+    let elapsed = (millis() - timerStart) / 1000;
+    countdown = 3 - floor(elapsed);
+    
+    if (countdown <= 0) {
+      gameState = "RESULT";
+      playerChoice = getRPSGesture(hand);
+      let choices = ["石頭", "剪刀", "布"];
+      computerChoice = random(choices);
+      resultMessage = decideWinner(playerChoice, computerChoice);
+      
+      // 3秒後自動回到等待畫面
+      setTimeout(() => {
+        gameState = "WAITING";
+      }, 3000);
+    }
+  }
+}
+
+function displayUI(offsetX, offsetY) {
+  textAlign(CENTER, CENTER);
+  fill(0);
+  noStroke();
+  
+  if (gameState === "WAITING") {
+    textSize(40);
+    text("👍 比讚開始遊戲", width / 2, offsetY - 50);
+  } else if (gameState === "COUNTING") {
+    textSize(80);
+    fill(255, 0, 0);
+    text(countdown, width / 2, height / 2);
+  } else if (gameState === "RESULT") {
+    textSize(30);
+    fill(50);
+    text(`玩家: ${playerChoice}  VS  電腦: ${computerChoice}`, width / 2, offsetY - 60);
+    textSize(60);
+    fill(0);
+    text(resultMessage, width / 2, offsetY - 120);
+  }
+}
+
+// 手勢辨識：比讚 (Start)
+function isThumbsUp(hand) {
+  let thumbTip = hand.keypoints[4];
+  let thumbIP = hand.keypoints[3];
+  let indexTip = hand.keypoints[8];
+  let indexBase = hand.keypoints[5];
+  // 拇指尖端高於拇指關節，且食指尖端低於食指根部（指頭收合）
+  return thumbTip.y < thumbIP.y && indexTip.y > indexBase.y;
+}
+
+// 手勢辨識：石頭剪刀布
+function getRPSGesture(hand) {
+  // 判斷手指是否伸直 (y 座標愈小代表位置愈高)
+  let indexUp = hand.keypoints[8].y < hand.keypoints[6].y;
+  let middleUp = hand.keypoints[12].y < hand.keypoints[10].y;
+  let ringUp = hand.keypoints[16].y < hand.keypoints[14].y;
+  let pinkyUp = hand.keypoints[20].y < hand.keypoints[18].y;
+
+  if (indexUp && middleUp && ringUp && pinkyUp) return "布";
+  if (indexUp && middleUp && !ringUp && !pinkyUp) return "剪刀";
+  if (!indexUp && !middleUp && !ringUp && !pinkyUp) return "石頭";
+  return "未知";
+}
+
+function decideWinner(p, c) {
+  if (p === "未知") return "看不清楚，請重試！";
+  if (p === c) return "平手！";
+  if (
+    (p === "石頭" && c === "剪刀") ||
+    (p === "剪刀" && c === "布") ||
+    (p === "布" && c === "石頭")
+  ) {
+    return "你贏了！ 🎉";
+  }
+  return "電腦贏了 😭";
 }
 
 function gotHands(results) {
