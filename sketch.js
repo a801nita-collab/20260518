@@ -38,12 +38,24 @@ function setup() {
 }
 
 function draw() {
-  // 設定畫布背景顏色為 e7c6ff
-  background('#e7c6ff');
+  // 改為深色科技感背景
+  background(10, 10, 25);
+
+  // 繪製背景網格
+  stroke(30, 50, 80, 100);
+  strokeWeight(1);
+  for (let x = 0; x < width; x += 50) line(x, 0, x, height);
+  for (let y = 0; y < height; y += 50) line(0, y, width, y);
 
   // 計算影像在視窗中間的座標
   let offsetX = (width - video.width) / 2;
   let offsetY = (height - video.height) / 2;
+
+  // 給影像加上科技感的邊框
+  noFill();
+  stroke(0, 242, 255, 150);
+  strokeWeight(2);
+  rect(offsetX - 5, offsetY - 5, video.width + 10, video.height + 10);
 
   // --- 繪製影像 (左右顛倒鏡像效果) ---
   push();
@@ -58,9 +70,12 @@ function draw() {
   for (let i = 0; i < hands.length; i++) {
     let hand = hands[i];
     
-    stroke(255); // 設定線條顏色（此處設為白色）
-    strokeWeight(3);
+    // 設定霓虹青色連線
+    stroke(0, 242, 255); 
+    strokeWeight(2);
     noFill();
+    drawingContext.shadowBlur = 15; // 增加發光效果
+    drawingContext.shadowColor = color(0, 242, 255);
 
     // 根據需求定義手指連線段落：0-4, 5-8, 9-12, 13-16, 17-20
     let fingerSegments = [
@@ -75,13 +90,21 @@ function draw() {
       beginShape();
       for (let index of segment) {
         let kp = hand.keypoints[index];
-        // 因為影像已左右顛倒，關鍵點 X 座標也需對應翻轉
         let mirroredX = video.width - kp.x;
         vertex(mirroredX + offsetX, kp.y + offsetY);
       }
       endShape();
     }
     
+    // 繪製關鍵點圓點
+    fill(0, 242, 255);
+    noStroke();
+    for (let kp of hand.keypoints) {
+      let mirroredX = video.width - kp.x;
+      circle(mirroredX + offsetX, kp.y + offsetY, 5);
+    }
+    drawingContext.shadowBlur = 0; // 重置發光以免影響其他元件
+
     // 取得第一隻偵測到的手進行邏輯判斷
     if (i === 0) currentHand = hand;
   }
@@ -176,45 +199,44 @@ function handleGameLogic(hand) {
 
 function displayUI(offsetX, offsetY) {
   textAlign(CENTER, CENTER);
-  fill(0);
+  fill(0, 242, 255);
   noStroke();
 
   // 在畫面上方顯示目前的累積局數與勝負
   textSize(24);
-  fill(50);
-  text(`(局數:${totalGames} 玩家 ${playerWins} 勝 電腦 ${computerWins} 勝)`, width / 2, 40);
+  text(`SYSTEM STATUS: [GAMES: ${totalGames}] [PLAYER: ${playerWins}] [COM: ${computerWins}]`, width / 2, 40);
   
   if (gameState === "WAITING") {
     textSize(40);
+    fill(0, 242, 255);
     text("👍 比讚開始遊戲", width / 2, offsetY - 50);
 
-    // 繪製進度條背景 (始終顯示，讓玩家能看到進度「退回」的視覺效果)
     let barWidth = 200;
-    let barHeight = 20;
-    fill(255, 180); // 半透明白色背景
-    rect(width / 2 - barWidth / 2, offsetY - 30, barWidth, barHeight, 10);
+    let barHeight = 10;
+    fill(0, 242, 255, 50);
+    rect(width / 2 - barWidth / 2, offsetY - 25, barWidth, barHeight);
 
-    // 繪製進度量 (綠色)
     let progress = startProgress / 3000;
-    fill(0, 255, 0);
-    rect(width / 2 - barWidth / 2, offsetY - 30, barWidth * progress, barHeight, 10);
+    fill(0, 242, 255);
+    rect(width / 2 - barWidth / 2, offsetY - 25, barWidth * progress, barHeight);
     
     textSize(16);
-    fill(0);
-    let statusMsg = startProgress > 0 ? (startProgress === 3000 ? "完成！" : "偵測中...") : "等待比讚...";
+    let statusMsg = startProgress > 0 ? (startProgress === 3000 ? "READY" : "ANALYZING...") : "IDLE";
     text(statusMsg, width / 2, offsetY - 15);
   } else if (gameState === "COUNTING") {
-    textSize(80);
-    fill(255, 0, 0);
+    textSize(120);
+    fill(255, 0, 255); // 霓虹洋紅
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = color(255, 0, 255);
     text(countdown, width / 2, height / 2);
+    drawingContext.shadowBlur = 0;
     
     textSize(20);
-    fill(100);
-    text("👎 比倒讚可隨時結束", width / 2, height - 50);
+    fill(150);
+    text("TERMINATE: [THUMBS DOWN]", width / 2, height - 50);
   } else if (gameState === "PLAYER_DECIDING") {
-    // 顯示「請出拳」提示與進度條
     textSize(60);
-    fill(255, 0, 0);
+    fill(0, 242, 255);
     text("👊 請出拳！", width / 2, height / 2 - 50);
     
     textSize(24);
