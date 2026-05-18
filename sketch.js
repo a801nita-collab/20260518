@@ -9,6 +9,7 @@ let timerStart = 0;
 let playerChoice = "";
 let computerChoice = "";
 let resultMessage = "";
+let thumbsUpHoldStart = 0; // 新增：比讚開始時間點
 
 function preload() {
   // 載入 ml5.js 的 handPose 模型
@@ -89,10 +90,21 @@ function handleGameLogic(hand) {
   if (!hand) return;
 
   if (gameState === "WAITING") {
+    // 判斷是否正在比讚
     if (isThumbsUp(hand)) {
-      gameState = "COUNTING";
-      timerStart = millis();
-      countdown = 3;
+      if (thumbsUpHoldStart === 0) {
+        thumbsUpHoldStart = millis(); // 開始記錄時間
+      }
+      
+      let holdTime = millis() - thumbsUpHoldStart;
+      if (holdTime >= 3000) { // 持續滿 3 秒
+        gameState = "COUNTING";
+        timerStart = millis();
+        countdown = 3;
+        thumbsUpHoldStart = 0; // 重置
+      }
+    } else {
+      thumbsUpHoldStart = 0; // 中斷則重置
     }
   } else if (gameState === "COUNTING") {
     let elapsed = (millis() - timerStart) / 1000;
@@ -121,6 +133,19 @@ function displayUI(offsetX, offsetY) {
   if (gameState === "WAITING") {
     textSize(40);
     text("👍 比讚開始遊戲", width / 2, offsetY - 50);
+    
+    // 繪製偵測進度條
+    if (thumbsUpHoldStart > 0) {
+      let progress = min((millis() - thumbsUpHoldStart) / 3000, 1);
+      let barWidth = 200;
+      let barHeight = 20;
+      fill(255);
+      rect(width / 2 - barWidth / 2, offsetY - 30, barWidth, barHeight, 10);
+      fill(0, 255, 0); // 進度條顏色（綠色）
+      rect(width / 2 - barWidth / 2, offsetY - 30, barWidth * progress, barHeight, 10);
+      textSize(16);
+      text("偵測中...", width / 2, offsetY - 15);
+    }
   } else if (gameState === "COUNTING") {
     textSize(80);
     fill(255, 0, 0);
