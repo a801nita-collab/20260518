@@ -9,7 +9,7 @@ let timerStart = 0;
 let playerChoice = "";
 let computerChoice = "";
 let resultMessage = "";
-let thumbsUpHoldStart = 0; // 新增：比讚開始時間點
+let startProgress = 0; // 修改：累積比讚的進度 (0 到 3000 毫秒)
 
 function preload() {
   // 載入 ml5.js 的 handPose 模型
@@ -135,8 +135,8 @@ function displayUI(offsetX, offsetY) {
     text("👍 比讚開始遊戲", width / 2, offsetY - 50);
     
     // 繪製偵測進度條
-    if (thumbsUpHoldStart > 0) {
-      let progress = min((millis() - thumbsUpHoldStart) / 3000, 1);
+    if (startProgress > 0) {
+      let progress = startProgress / 3000;
       let barWidth = 200;
       let barHeight = 20;
       fill(255);
