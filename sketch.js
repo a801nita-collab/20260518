@@ -59,9 +59,12 @@ function draw() {
   for (let i = 0; i < hands.length; i++) {
     let hand = hands[i];
     
-    stroke(255); // 設定線條顏色（此處設為白色）
-    strokeWeight(3);
+    // 設定霓虹發光效果的手部連線
+    stroke(0, 255, 255);
+    strokeWeight(2);
     noFill();
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = color(0, 255, 255);
 
     // 根據需求定義手指連線段落：0-4, 5-8, 9-12, 13-16, 17-20
     let fingerSegments = [
@@ -82,6 +85,7 @@ function draw() {
       }
       endShape();
     }
+    drawingContext.shadowBlur = 0; // 重置發光以免影響其他元件
     
     // 取得第一隻偵測到的手進行邏輯判斷
     if (i === 0) currentHand = hand;
@@ -220,7 +224,9 @@ function displayUI(offsetX, offsetY) {
     text(countdown, width / 2, height / 2);
     
     textSize(20);
-    fill(100);
+    // 讓底部的提示字也發光
+    drawingContext.shadowBlur = 10;
+    fill(0, 255, 255);
     text("👎 比倒讚可隨時結束", width / 2, height - 50);
   } else if (gameState === "PLAYER_DECIDING") {
     // 顯示「請出拳」提示與進度條
@@ -240,9 +246,9 @@ function displayUI(offsetX, offsetY) {
     fill(255, 100, 0); // 橘色代表出拳偵測
     rect(width / 2 - barWidth / 2, height / 2 + 60, (rpsProgress / 2000) * barWidth, barHeight, 12);
 
-    drawingContext.shadowBlur = 0; // 重置發光以免影響下方小字
+    drawingContext.shadowBlur = 10;
     textSize(20);
-    fill(100);
+    fill(0, 255, 255);
     text("👎 比倒讚可隨時結束", width / 2, height - 50);
   } else if (gameState === "RESULT") {
     drawingContext.shadowBlur = 20;
@@ -253,9 +259,9 @@ function displayUI(offsetX, offsetY) {
     textSize(60);
     text(resultMessage, width / 2, offsetY - 120);
 
-    drawingContext.shadowBlur = 0;
+    drawingContext.shadowBlur = 10;
     textSize(20);
-    fill(100);
+    fill(0, 255, 255);
     text("👎 比倒讚立即回主畫面", width / 2, height - 50);
   }
 }
