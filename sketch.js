@@ -92,8 +92,8 @@ function draw() {
 }
 
 function handleGameLogic(hand) {
-  // 當比出「倒讚」時，重置遊戲統計並回到主畫面 (遊戲結束)
-  if (hand && isThumbsDown(hand) && (gameState !== "WAITING" || totalGames > 0)) {
+  // 當偵測到「倒讚」手勢，無論在任何狀態，立即將所有數據歸零並回到主畫面
+  if (hand && isThumbsDown(hand)) {
     gameState = "WAITING";
     startProgress = 0;
     rpsProgress = 0;
@@ -105,6 +105,7 @@ function handleGameLogic(hand) {
     return;
   }
 
+  // 遊戲開始前的等待邏輯
   if (gameState === "WAITING") {
     // 如果有偵測到手且正在比讚，進度增加；否則進度減少
     if (hand && isThumbsUp(hand)) {
@@ -125,6 +126,7 @@ function handleGameLogic(hand) {
     return; // WAITING 階段不需要後續的出拳判斷
   }
 
+  // 遊戲進行中的倒數邏輯
   if (gameState === "COUNTING") {
     let elapsed = (millis() - timerStart) / 1000;
     countdown = 3 - floor(elapsed);
@@ -135,6 +137,7 @@ function handleGameLogic(hand) {
     }
   }
 
+  // 玩家出拳偵測邏輯
   if (gameState === "PLAYER_DECIDING") {
     // 取得當前手勢
     let currentGesture = hand ? getRPSGesture(hand) : "未知";
@@ -154,7 +157,7 @@ function handleGameLogic(hand) {
       let choices = ["石頭", "剪刀", "布"];
       computerChoice = random(choices);
       resultMessage = decideWinner(playerChoice, computerChoice);
-      
+
       // 更新統計數據
       totalGames++;
       if (resultMessage.includes("你贏了")) {
@@ -163,7 +166,7 @@ function handleGameLogic(hand) {
         computerWins++;
       }
 
-      // 3秒後自動回到等待畫面
+      // 顯示結果 3 秒後自動回到等待畫面，玩家可再次比讚開始新一局
       setTimeout(() => {
         gameState = "WAITING";
       }, 3000);
