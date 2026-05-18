@@ -87,26 +87,29 @@ function draw() {
 }
 
 function handleGameLogic(hand) {
-  if (!hand) return;
-
   if (gameState === "WAITING") {
-    // 判斷是否正在比讚
-    if (isThumbsUp(hand)) {
-      if (thumbsUpHoldStart === 0) {
-        thumbsUpHoldStart = millis(); // 開始記錄時間
-      }
-      
-      let holdTime = millis() - thumbsUpHoldStart;
-      if (holdTime >= 3000) { // 持續滿 3 秒
-        gameState = "COUNTING";
-        timerStart = millis();
-        countdown = 3;
-        thumbsUpHoldStart = 0; // 重置
-      }
+    // 如果有偵測到手且正在比讚，進度增加；否則進度減少
+    if (hand && isThumbsUp(hand)) {
+      startProgress += deltaTime;
     } else {
-      thumbsUpHoldStart = 0; // 中斷則重置
+      startProgress -= deltaTime;
     }
-  } else if (gameState === "COUNTING") {
+    
+    // 限制進度範圍在 0 到 3000 之間
+    startProgress = constrain(startProgress, 0, 3000);
+
+    if (startProgress >= 3000) {
+      gameState = "COUNTING";
+      timerStart = millis();
+      countdown = 3;
+      startProgress = 0; // 進入遊戲後重置進度
+    }
+    return; // WAITING 階段不需要後續的出拳判斷
+  }
+
+  if (!hand) return; // COUNTING 和 RESULT 階段需要手部資訊
+
+  if (gameState === "COUNTING") {
     let elapsed = (millis() - timerStart) / 1000;
     countdown = 3 - floor(elapsed);
     
@@ -150,6 +153,9 @@ function displayUI(offsetX, offsetY) {
     textSize(80);
     fill(255, 0, 0);
     text(countdown, width / 2, height / 2);
+    textSize(40);
+    fill(0);
+    text("👊 請出拳！", width / 2, height / 2 + 100);
   } else if (gameState === "RESULT") {
     textSize(30);
     fill(50);
