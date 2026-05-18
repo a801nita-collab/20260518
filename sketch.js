@@ -31,8 +31,13 @@ function draw() {
   let offsetX = (width - video.width) / 2;
   let offsetY = (height - video.height) / 2;
 
-  // 在視窗中間顯示擷取到的影像
-  image(video, offsetX, offsetY);
+  // 左右顛倒顯示影像 (鏡像效果)
+  push();
+  // 移動到影像右側邊界再翻轉刻度
+  translate(offsetX + video.width, offsetY);
+  scale(-1, 1);
+  image(video, 0, 0);
+  pop();
 
   // 繪製偵測到的手部關鍵點連線
   for (let i = 0; i < hands.length; i++) {
@@ -55,8 +60,9 @@ function draw() {
       beginShape();
       for (let index of segment) {
         let kp = hand.keypoints[index];
-        // 關鍵點座標需加上影像的位移量 (offsetX, offsetY)
-        vertex(kp.x + offsetX, kp.y + offsetY);
+        // 因為影像已左右顛倒，關鍵點 X 座標也需對應翻轉
+        let mirroredX = video.width - kp.x;
+        vertex(mirroredX + offsetX, kp.y + offsetY);
       }
       endShape();
     }
