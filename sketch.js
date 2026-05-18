@@ -12,6 +12,10 @@ let resultMessage = "";
 let startProgress = 0; // 修改：累積比讚的進度 (0 到 3000 毫秒)
 let rpsProgress = 0;   // 新增：累積出拳偵測的進度 (0 到 2000 毫秒)
 
+let totalGames = 0;    // 總局數
+let playerWins = 0;    // 玩家勝場
+let computerWins = 0;  // 電腦勝場
+
 function preload() {
   // 載入 ml5.js 的 handPose 模型
   handPose = ml5.handPose();
@@ -88,12 +92,16 @@ function draw() {
 }
 
 function handleGameLogic(hand) {
-  // 新增：在任何遊戲進行中，若比出「倒讚」，立刻結束遊戲回到主畫面
-  if (hand && isThumbsDown(hand) && gameState !== "WAITING") {
+  // 當比出「倒讚」時，重置遊戲統計並回到主畫面 (遊戲結束)
+  if (hand && isThumbsDown(hand) && (gameState !== "WAITING" || totalGames > 0)) {
     gameState = "WAITING";
     startProgress = 0;
     rpsProgress = 0;
     resultMessage = "";
+    // 重置統計數據
+    totalGames = 0;
+    playerWins = 0;
+    computerWins = 0;
     return;
   }
 
@@ -147,6 +155,14 @@ function handleGameLogic(hand) {
       computerChoice = random(choices);
       resultMessage = decideWinner(playerChoice, computerChoice);
       
+      // 更新統計數據
+      totalGames++;
+      if (resultMessage.includes("你贏了")) {
+        playerWins++;
+      } else if (resultMessage.includes("電腦贏了")) {
+        computerWins++;
+      }
+
       // 3秒後自動回到等待畫面
       setTimeout(() => {
         gameState = "WAITING";
@@ -159,6 +175,11 @@ function displayUI(offsetX, offsetY) {
   textAlign(CENTER, CENTER);
   fill(0);
   noStroke();
+
+  // 在畫面上方顯示目前的累積局數與勝負
+  textSize(24);
+  fill(50);
+  text(`(局數:${totalGames} 玩家 ${playerWins} 勝 電腦 ${computerWins} 勝)`, width / 2, 40);
   
   if (gameState === "WAITING") {
     textSize(40);
