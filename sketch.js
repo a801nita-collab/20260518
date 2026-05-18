@@ -88,6 +88,15 @@ function draw() {
 }
 
 function handleGameLogic(hand) {
+  // 新增：在任何遊戲進行中，若比出「倒讚」，立刻結束遊戲回到主畫面
+  if (hand && isThumbsDown(hand) && gameState !== "WAITING") {
+    gameState = "WAITING";
+    startProgress = 0;
+    rpsProgress = 0;
+    resultMessage = "";
+    return;
+  }
+
   if (gameState === "WAITING") {
     // 如果有偵測到手且正在比讚，進度增加；否則進度減少
     if (hand && isThumbsUp(hand)) {
@@ -174,6 +183,10 @@ function displayUI(offsetX, offsetY) {
     textSize(80);
     fill(255, 0, 0);
     text(countdown, width / 2, height / 2);
+    
+    textSize(20);
+    fill(100);
+    text("👎 比倒讚可隨時結束", width / 2, height - 50);
   } else if (gameState === "PLAYER_DECIDING") {
     // 顯示「請出拳」提示與進度條
     textSize(60);
@@ -191,6 +204,10 @@ function displayUI(offsetX, offsetY) {
     rect(width / 2 - barWidth / 2, height / 2 + 60, barWidth, barHeight, 12);
     fill(255, 100, 0); // 橘色代表出拳偵測
     rect(width / 2 - barWidth / 2, height / 2 + 60, (rpsProgress / 2000) * barWidth, barHeight, 12);
+
+    textSize(20);
+    fill(100);
+    text("👎 比倒讚可隨時結束", width / 2, height - 50);
   } else if (gameState === "RESULT") {
     textSize(30);
     fill(50);
@@ -198,6 +215,10 @@ function displayUI(offsetX, offsetY) {
     textSize(60);
     fill(0);
     text(resultMessage, width / 2, offsetY - 120);
+
+    textSize(20);
+    fill(100);
+    text("👎 比倒讚立即回主畫面", width / 2, height - 50);
   }
 }
 
@@ -209,6 +230,16 @@ function isThumbsUp(hand) {
   let indexBase = hand.keypoints[5];
   // 拇指尖端高於拇指關節，且食指尖端低於食指根部（指頭收合）
   return thumbTip.y < thumbIP.y && indexTip.y > indexBase.y;
+}
+
+// 新增：手勢辨識：比倒讚 (End Game)
+function isThumbsDown(hand) {
+  let thumbTip = hand.keypoints[4];
+  let thumbIP = hand.keypoints[3];
+  let indexTip = hand.keypoints[8];
+  let indexBase = hand.keypoints[5];
+  // 拇指尖端低於拇指關節，且食指尖端高於食指根部（因為倒過來比，y 座標邏輯會反轉）
+  return thumbTip.y > thumbIP.y && indexTip.y < indexBase.y;
 }
 
 // 手勢辨識：石頭剪刀布
