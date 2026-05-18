@@ -3,13 +3,14 @@ let video;
 let hands = [];
 
 // 遊戲狀態與變數
-let gameState = "WAITING"; // WAITING, COUNTING, RESULT
+let gameState = "WAITING"; // WAITING, COUNTING, PLAYER_DECIDING, RESULT
 let countdown = 3;
 let timerStart = 0;
 let playerChoice = "";
 let computerChoice = "";
 let resultMessage = "";
 let startProgress = 0; // 修改：累積比讚的進度 (0 到 3000 毫秒)
+let rpsProgress = 0;   // 新增：累積出拳偵測的進度 (0 到 2000 毫秒)
 
 function preload() {
   // 載入 ml5.js 的 handPose 模型
@@ -107,15 +108,32 @@ function handleGameLogic(hand) {
     return; // WAITING 階段不需要後續的出拳判斷
   }
 
-  if (!hand) return; // COUNTING 和 RESULT 階段需要手部資訊
-
   if (gameState === "COUNTING") {
     let elapsed = (millis() - timerStart) / 1000;
     countdown = 3 - floor(elapsed);
     
     if (countdown <= 0) {
+      gameState = "PLAYER_DECIDING";
+      rpsProgress = 0; // 重置出拳進度
+    }
+  }
+
+  if (gameState === "PLAYER_DECIDING") {
+    // 取得當前手勢
+    let currentGesture = hand ? getRPSGesture(hand) : "未知";
+    
+    if (currentGesture !== "未知") {
+      rpsProgress += deltaTime;
+      playerChoice = currentGesture; // 暫存目前偵測到的手勢
+    } else {
+      rpsProgress -= deltaTime;
+    }
+    
+    rpsProgress = constrain(rpsProgress, 0, 2000);
+
+    if (rpsProgress >= 2000) {
+      // 進度滿了，電腦才出拳並進入結果
       gameState = "RESULT";
-      playerChoice = getRPSGesture(hand);
       let choices = ["石頭", "剪刀", "布"];
       computerChoice = random(choices);
       resultMessage = decideWinner(playerChoice, computerChoice);
@@ -136,26 +154,43 @@ function displayUI(offsetX, offsetY) {
   if (gameState === "WAITING") {
     textSize(40);
     text("👍 比讚開始遊戲", width / 2, offsetY - 50);
+
+    // 繪製進度條背景 (始終顯示，讓玩家能看到進度「退回」的視覺效果)
+    let barWidth = 200;
+    let barHeight = 20;
+    fill(255, 180); // 半透明白色背景
+    rect(width / 2 - barWidth / 2, offsetY - 30, barWidth, barHeight, 10);
+
+    // 繪製進度量 (綠色)
+    let progress = startProgress / 3000;
+    fill(0, 255, 0);
+    rect(width / 2 - barWidth / 2, offsetY - 30, barWidth * progress, barHeight, 10);
     
-    // 繪製偵測進度條
-    if (startProgress > 0) {
-      let progress = startProgress / 3000;
-      let barWidth = 200;
-      let barHeight = 20;
-      fill(255);
-      rect(width / 2 - barWidth / 2, offsetY - 30, barWidth, barHeight, 10);
-      fill(0, 255, 0); // 進度條顏色（綠色）
-      rect(width / 2 - barWidth / 2, offsetY - 30, barWidth * progress, barHeight, 10);
-      textSize(16);
-      text("偵測中...", width / 2, offsetY - 15);
-    }
+    textSize(16);
+    fill(0);
+    let statusMsg = startProgress > 0 ? (startProgress === 3000 ? "完成！" : "偵測中...") : "等待比讚...";
+    text(statusMsg, width / 2, offsetY - 15);
   } else if (gameState === "COUNTING") {
     textSize(80);
     fill(255, 0, 0);
     text(countdown, width / 2, height / 2);
-    textSize(40);
+  } else if (gameState === "PLAYER_DECIDING") {
+    // 顯示「請出拳」提示與進度條
+    textSize(60);
+    fill(255, 0, 0);
+    text("👊 請出拳！", width / 2, height / 2 - 50);
+    
+    textSize(24);
     fill(0);
-    text("👊 請出拳！", width / 2, height / 2 + 100);
+    text("保持手勢不要動...", width / 2, height / 2 + 30);
+
+    // 出拳偵測進度條
+    let barWidth = 250;
+    let barHeight = 25;
+    fill(255);
+    rect(width / 2 - barWidth / 2, height / 2 + 60, barWidth, barHeight, 12);
+    fill(255, 100, 0); // 橘色代表出拳偵測
+    rect(width / 2 - barWidth / 2, height / 2 + 60, (rpsProgress / 2000) * barWidth, barHeight, 12);
   } else if (gameState === "RESULT") {
     textSize(30);
     fill(50);
